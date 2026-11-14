@@ -1,56 +1,54 @@
 import React, { useState } from 'react';
-import { ChevronDown, HelpCircle } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { FAQS } from '../data/landingData';
 
 export default function Faq() {
   const [openIndex, setOpenIndex] = useState(0);
 
-  const toggleIndex = (idx) => {
+  const toggle = (idx) => {
     setOpenIndex(openIndex === idx ? null : idx);
   };
 
   return (
-    <section id="faq" className="py-20 bg-slate-950 border-t border-slate-800">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="faq" className="py-16 sm:py-24 bg-[#F8F9FC] border-b border-[#E2E5F0]">
+      <div className="max-w-[1120px] mx-auto px-5">
         
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 bg-slate-900 border border-slate-700/80 text-orange-400 px-3 py-1 rounded-full text-xs font-bold mb-3">
-            <HelpCircle className="w-3.5 h-3.5" /> Réponses à vos Questions
+        {/* Section Head */}
+        <div className="max-w-[640px] mb-12 sm:mb-16">
+          <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#16144F] mb-3">
+            <span className="w-2 h-2 rounded-full bg-[#FF6B35]"></span>
+            Questions fréquentes
           </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Questions Fréquentes
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111033] tracking-tight mb-3">
+            Tout ce qu’il faut savoir avant d’équiper votre véhicule.
           </h2>
-          <p className="text-sm text-slate-400 mt-2">
-            Tout ce que vous devez savoir avant d'équiper votre véhicule.
-          </p>
         </div>
 
-        {/* FAQ List */}
-        <div className="space-y-3.5">
-          {FAQS.map((faq, idx) => {
+        {/* Accordion List */}
+        <div className="max-w-[780px] space-y-3">
+          {FAQS.map((item, idx) => {
             const isOpen = openIndex === idx;
             return (
               <div
                 key={idx}
-                className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden transition"
+                className="bg-white border border-[#E2E5F0] hover:border-[#CBD0E2] rounded-2xl p-5 sm:p-6 transition-all duration-200"
               >
                 <button
                   type="button"
-                  onClick={() => toggleIndex(idx)}
-                  className="w-full p-5 text-left font-bold text-sm sm:text-base text-white flex items-center justify-between gap-4 cursor-pointer hover:text-orange-400 transition"
+                  onClick={() => toggle(idx)}
+                  className="w-full flex items-center justify-between gap-4 text-left font-bold text-sm sm:text-base text-[#111033] cursor-pointer hover:text-[#16144F] transition-colors"
                 >
-                  <span>{faq.q}</span>
+                  <span>{item.q}</span>
                   <ChevronDown
-                    className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${
-                      isOpen ? 'rotate-180 text-orange-400' : ''
+                    className={`w-5 h-5 text-[#525570] shrink-0 transition-transform duration-200 ${
+                      isOpen ? 'rotate-180 text-[#16144F]' : ''
                     }`}
                   />
                 </button>
 
                 {isOpen && (
-                  <div className="px-5 pb-5 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-slate-800/60 pt-3">
-                    {faq.a}
+                  <div className="mt-3.5 pt-3.5 border-t border-[#E2E5F0] text-sm text-[#525570] leading-relaxed animate-in fade-in duration-150">
+                    {item.a}
                   </div>
                 )}
               </div>
@@ -58,21 +56,7 @@ export default function Faq() {
           })}
         </div>
 
-        {/* Extra Contact question */}
-        <div className="mt-10 p-6 bg-slate-900/40 border border-slate-800 rounded-2xl text-center">
-          <p className="text-xs sm:text-sm text-slate-300">
-            Vous avez une question spécifique sur votre modèle de véhicule ?
-          </p>
-          <a
-            href="#devis"
-            className="inline-block mt-3 text-xs font-extrabold text-orange-400 hover:text-orange-300 transition underline underline-offset-4"
-          >
-            Posez-la directement à notre technicien sur WhatsApp →
-          </a>
-        </div>
-
       </div>
     </section>
   );
 }
-

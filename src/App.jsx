@@ -1,59 +1,82 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
-import Comparison from './components/Comparison';
+import Problem from './components/Problem';
 import Features from './components/Features';
 import Pricing from './components/Pricing';
+import ProofSection from './components/ProofSection';
 import HowItWorks from './components/HowItWorks';
 import QuoteForm from './components/QuoteForm';
-import Testimonials from './components/Testimonials';
 import Faq from './components/Faq';
+import FinalCta from './components/FinalCta';
 import Footer from './components/Footer';
 import FloatingWhatsApp from './components/FloatingWhatsApp';
 
 export default function App() {
+  const [selectedVehicle, setSelectedVehicle] = useState('Voiture|50000');
+
+  useEffect(() => {
+    // Intersection observer for progressive scroll reveal
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+
+    const items = document.querySelectorAll('.reveal-item');
+    items.forEach((item) => observer.observe(item));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-orange-500 selection:text-white">
-      {/* Navigation */}
+    <div className="min-h-screen bg-[#F8F9FC] text-[#111033] flex flex-col font-sans antialiased selection:bg-[#FF6B35] selection:text-[#0E0D33]">
+      {/* Sleek Header & Mobile Navigation */}
       <Header />
 
       {/* Main Content */}
-      <main className="flex-1">
-        {/* Hero with interactive simulator */}
+      <main id="top" className="flex-1">
+        {/* Hero with interactive phone mockup */}
         <Hero />
 
-        {/* Cameroon terrain reality: Before / After */}
-        <Comparison />
+        {/* Le risque réel (Problème terrain) */}
+        <Problem />
 
-        {/* Advanced Features & Hardware Quality */}
+        {/* Fonctionnalités & Contrôle */}
         <Features />
 
-        {/* Transparent Pricing Cards */}
-        <Pricing />
+        {/* Tarifs promotionnels */}
+        <Pricing onSelectVehicle={setSelectedVehicle} />
 
-        {/* 3 Simple Steps */}
+        {/* Visuels en situation réelle (Nouveau & Convaincant) */}
+        <ProofSection />
+
+        {/* 3 étapes simples */}
         <HowItWorks />
 
-        {/* Lead Quote Form with WhatsApp scoring */}
-        <section className="py-20 bg-slate-950 relative">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <QuoteForm />
-          </div>
-        </section>
+        {/* Formulaire de qualification 5 questions & Sticky estimation */}
+        <QuoteForm 
+          selectedVehicle={selectedVehicle} 
+          setSelectedVehicle={setSelectedVehicle} 
+        />
 
-        {/* Social Proof & Customer Reviews */}
-        <Testimonials />
-
-        {/* Frequently Asked Questions */}
+        {/* Questions Fréquentes */}
         <Faq />
+
+        {/* Appel à l'action final */}
+        <FinalCta />
       </main>
 
       {/* Footer */}
       <Footer />
 
-      {/* Floating CTA buttons */}
+      {/* Floating CTA WhatsApp & Mobile Fixed Bar */}
       <FloatingWhatsApp />
     </div>
   );
 }
-

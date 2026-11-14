@@ -1,389 +1,386 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { 
-  Send, 
-  CheckCircle2, 
-  ShieldAlert, 
-  Car, 
-  Bike, 
-  Truck, 
-  MapPin, 
-  User, 
-  Phone, 
-  Sparkles,
-  HelpCircle,
-  Clock
-} from 'lucide-react';
-import { VEHICLE_OPTIONS, WHATSAPP_NUMBER } from '../data/landingData';
+import { ArrowRight, Check, AlertCircle } from 'lucide-react';
+import { WHATSAPP_NUMBER } from '../data/landingData';
 
-export default function QuoteForm() {
-  const [selectedVehicle, setSelectedVehicle] = useState('voiture');
-  const [quantity, setQuantity] = useState(1);
-  const [mainNeed, setMainNeed] = useState('Protéger contre le vol');
-  const [timeframe, setTimeframe] = useState('Cette semaine');
-  const [city, setCity] = useState('Douala');
-  const [fullName, setFullName] = useState('');
-  const [whatsappPhone, setWhatsappPhone] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
+export default function QuoteForm({ selectedVehicle, setSelectedVehicle }) {
+  const [qty, setQty] = useState(1);
+  const [mainNeed, setMainNeed] = useState("Protéger contre le vol");
+  const [timeframe, setTimeframe] = useState("Cette semaine");
+  const [cityName, setCityName] = useState("Yaoundé");
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const vehicleObj = VEHICLE_OPTIONS.find(v => v.id === selectedVehicle) || VEHICLE_OPTIONS[1];
-
-  // Dynamic pricing calculation
-  const calculateTotal = () => {
-    if (quantity >= 6) {
-      return { isFleet: true, total: null, unitPrice: null };
-    }
-    const unitPrice = quantity >= 3 ? Math.round(vehicleObj.basePrice * 0.9) : vehicleObj.basePrice;
-    const total = unitPrice * quantity;
-    return { isFleet: false, total, unitPrice, discountApplied: quantity >= 3 };
-  };
-
-  const pricing = calculateTotal();
-
-  const formatFcfa = (val) => {
+  const formatPrice = (val) => {
     return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
   };
+
+  // Calculate estimate
+  let estMainText = "Sélectionnez un véhicule";
+  let estSubText = "Tarif promo affiché en direct.";
+  let unitPrice = 0;
+  let vehicleLabel = "";
+
+  if (selectedVehicle) {
+    const parts = selectedVehicle.split("|");
+    vehicleLabel = parts[0];
+    unitPrice = parseInt(parts[1], 10);
+
+    if (qty >= 6) {
+      estMainText = "Tarif flotte sur mesure";
+      estSubText = `${vehicleLabel} × ${qty} véhicules · Remise flotte appliquée sur WhatsApp.`;
+    } else {
+      estMainText = formatPrice(unitPrice * qty);
+      estSubText = qty > 1 
+        ? `${vehicleLabel} · ${qty} × ${formatPrice(unitPrice)}`
+        : `${vehicleLabel} · Tarif promotionnel unitaire`;
+    }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!fullName.trim()) {
-      setErrorMessage("Veuillez saisir votre prénom ou nom complet.");
+    if (!selectedVehicle) {
+      setErrorMessage("Veuillez choisir votre type de véhicule.");
+      return;
+    }
+    if (!mainNeed) {
+      setErrorMessage("Veuillez indiquer votre besoin principal.");
+      return;
+    }
+    if (!timeframe) {
+      setErrorMessage("Veuillez préciser quand vous souhaitez installer le GPS.");
+      return;
+    }
+    if (!clientName.trim()) {
+      setErrorMessage("Veuillez saisir votre prénom.");
+      return;
+    }
+    const cleanPhone = clientPhone.replace(/[^\d+]/g, "");
+    if (cleanPhone.replace(/\D/g, "").length < 9) {
+      setErrorMessage("Veuillez saisir un numéro WhatsApp valide (9 chiffres minimum).");
       return;
     }
 
-    const cleanPhone = whatsappPhone.replace(/[^\d+]/g, '');
-    if (cleanPhone.replace(/\D/g, '').length < 9) {
-      setErrorMessage("Veuillez entrer un numéro WhatsApp camerounais valide (ex: 656 73 75 41).");
-      return;
-    }
-
-    setErrorMessage('');
+    setErrorMessage("");
 
     // Trigger celebration confetti
     try {
       confetti({
-        particleCount: 80,
+        particleCount: 85,
         spread: 60,
         origin: { y: 0.8 },
-        colors: ['#f97316', '#22c55e', '#3b82f6', '#ffffff']
+        colors: ['#FF6B35', '#16144F', '#F8F9FC', '#0E0D33']
       });
-    } catch (err) {
-      // safe fallback
-    }
+    } catch (err) {}
 
-    // Lead scoring
-    let leadBadge = "TIÈDE 💡";
-    if (quantity >= 6) {
-      leadBadge = "FLOTTE PROFESSIONNELLE 🚛💼";
-    } else if (timeframe === "Cette semaine") {
-      leadBadge = "URGENT / CHAUD 🔥";
-    }
-
-    const priceText = pricing.isFleet 
-      ? `Flotte ${quantity} véhicules - Devis Grand Compte`
-      : `${formatFcfa(pricing.total)} (${quantity}x ${formatFcfa(pricing.unitPrice)})`;
+    const leadTag = qty >= 6 ? "FLOTTE" : (timeframe === "Cette semaine" ? "CHAUD" : "TIÈDE");
+    const estimationText = qty >= 6 ? "flotte, devis sur mesure" : formatPrice(unitPrice * qty);
 
     const message = 
-`Bonjour GPS Tracking Cameroun,
-Je viens de faire une estimation en ligne pour sécuriser mes véhicules :
+`Bonjour GPS Tracking, je suis ${clientName} (${cityName}).
+Véhicule : ${vehicleLabel} × ${qty}
+Besoin : ${mainNeed}
+Équipement : ${timeframe}
+Estimation : ${estimationText}
+Mon WhatsApp : ${cleanPhone}
+[Prospect ${leadTag}]`;
 
-👤 *Nom :* ${fullName}
-📍 *Ville :* ${city}
-📱 *WhatsApp :* ${cleanPhone}
-🚗 *Véhicule :* ${vehicleObj.name}
-🔢 *Quantité :* ${quantity} véhicule(s)
-🎯 *Besoin :* ${mainNeed}
-⏳ *Délai souhaité :* ${timeframe}
-💰 *Estimation :* ${priceText}
-⭐ *Statut prospect :* [${leadBadge}]
-
-Pouvez-vous me confirmer la disponibilité et planifier l'installation ? Merci !`;
-
-    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-    
-    setIsSuccess(true);
-    window.open(whatsappUrl, '_blank');
+    const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
-    <div id="devis" className="relative scroll-mt-24">
-      {/* Decorative gradient glow */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-orange-500/30 via-emerald-500/20 to-blue-600/30 rounded-3xl blur-2xl opacity-60"></div>
-
-      <div className="relative bg-slate-900 border border-slate-700/80 rounded-3xl p-6 sm:p-10 shadow-2xl overflow-hidden">
+    <section id="devis" className="py-16 sm:py-24 bg-white border-b border-[#E2E5F0] scroll-mt-14">
+      <div className="max-w-[1120px] mx-auto px-5">
         
-        {/* Header inside form */}
-        <div className="max-w-2xl mx-auto text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 text-orange-400 px-3.5 py-1.5 rounded-full text-xs font-bold mb-3">
-            <Sparkles className="w-3.5 h-3.5" /> Devis Express Gratuit · Réponse en 5 minutes
+        {/* Section Head */}
+        <div className="max-w-[640px] mb-12 sm:mb-16">
+          <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#16144F] mb-3">
+            <span className="w-2 h-2 rounded-full bg-[#FF6B35]"></span>
+            Devis gratuit en 1 minute
           </div>
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            Configurez votre traceur & recevez votre devis sur WhatsApp
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#111033] tracking-tight mb-3">
+            Calculez votre tarif et recevez votre offre sur WhatsApp.
           </h2>
-          <p className="text-sm sm:text-base text-slate-300 mt-2">
-            Répondez à ces quelques questions : nous calculons votre prix promo avec installation offerte et vous répondons immédiatement sur WhatsApp.
+          <p className="text-base sm:text-lg text-[#525570] leading-relaxed">
+            Remplissez ces 5 points pour obtenir une réponse immédiate et adaptée à votre véhicule.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-7">
+        {/* 2-Column Form & Sticky Summary Layout */}
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start" novalidate>
           
-          {/* Step 1: Vehicle selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-bold text-slate-200 flex items-center justify-between">
-              <span>1. Quel type de véhicule voulez-vous équiper ?</span>
-              <span className="text-xs text-orange-400 font-semibold">Garantie 1 an incluse</span>
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {VEHICLE_OPTIONS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setSelectedVehicle(item.id)}
-                  className={`p-3 rounded-2xl border text-center transition-all cursor-pointer relative ${
-                    selectedVehicle === item.id
-                      ? 'bg-orange-500/15 border-orange-500 ring-2 ring-orange-500/40 text-white'
-                      : 'bg-slate-800/80 border-slate-700/80 hover:border-slate-600 text-slate-300'
-                  }`}
-                >
-                  {item.popular && (
-                    <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
-                      Promo
+          {/* Left Column: Form Fields */}
+          <div className="lg:col-span-8 bg-[#F8F9FC] border border-[#E2E5F0] rounded-2xl p-6 sm:p-9 space-y-7">
+            
+            {/* Q1: Vehicle Selection */}
+            <div>
+              <span className="block font-bold text-sm sm:text-base text-[#111033] mb-3">
+                <span className="text-[#525570] mr-1">01.</span> Quel véhicule voulez-vous protéger ?
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {[
+                  {
+                    value: "Moto|45000",
+                    label: "Moto (45 000 F)",
+                    icon: (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6h2l2 4.5-3.5 3H9L6 10h6.5"/><path d="M9 17.5 12 10"/></svg>
+                    )
+                  },
+                  {
+                    value: "Voiture|50000",
+                    label: "Voiture (50 000 F)",
+                    icon: (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+                    )
+                  },
+                  {
+                    value: "SUV / Pickup|55000",
+                    label: "SUV / Pickup (55 000 F)",
+                    icon: (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 17h2v-5l-2.5-1.5L16 6H5L3 10.5V17h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/></svg>
+                    )
+                  },
+                  {
+                    value: "Camion|70000",
+                    label: "Camion (70 000 F)",
+                    icon: (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+                    )
+                  }
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    onClick={() => {
+                      setSelectedVehicle(opt.value);
+                      setErrorMessage("");
+                    }}
+                    className={`flex items-center gap-2.5 min-h-[48px] px-4 py-3 rounded-xl border text-sm font-semibold cursor-pointer transition-all duration-150 ${
+                      selectedVehicle === opt.value
+                        ? 'bg-white border-2 border-[#16144F] text-[#16144F] shadow-xs'
+                        : 'bg-white border-[#CBD0E2] text-[#111033] hover:border-[#16144F]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="vehicle"
+                      value={opt.value}
+                      checked={selectedVehicle === opt.value}
+                      onChange={() => setSelectedVehicle(opt.value)}
+                      className="sr-only"
+                    />
+                    <span className={selectedVehicle === opt.value ? 'text-[#16144F]' : 'text-[#525570]'}>
+                      {opt.icon}
                     </span>
-                  )}
-                  <span className="text-2xl block mb-1">{item.icon}</span>
-                  <span className="text-xs font-bold block">{item.name.split(' ')[0]}</span>
-                  <span className="text-[11px] text-orange-400 font-semibold block mt-1">
-                    {formatFcfa(item.basePrice)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Step 2: Quantity */}
-          <div className="space-y-3">
-            <label className="text-sm font-bold text-slate-200 block">
-              2. Nombre de véhicules à équiper :
-            </label>
-            <div className="flex items-center gap-4 bg-slate-800/80 p-3 rounded-2xl border border-slate-700/80">
-              <button
-                type="button"
-                onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                className="w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-extrabold text-lg flex items-center justify-center transition active:scale-95 cursor-pointer"
-              >
-                −
-              </button>
-              <div className="flex-1 text-center">
-                <span className="text-2xl font-extrabold text-white">{quantity}</span>
-                <span className="text-xs text-slate-400 block">
-                  {quantity > 1 ? 'véhicules' : 'véhicule'}
-                </span>
+                    <span>{opt.label}</span>
+                  </label>
+                ))}
               </div>
-              <button
-                type="button"
-                onClick={() => setQuantity(prev => Math.min(50, prev + 1))}
-                className="w-10 h-10 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-extrabold text-lg flex items-center justify-center transition active:scale-95 cursor-pointer"
-              >
-                +
-              </button>
             </div>
-            {quantity >= 3 && quantity < 6 && (
-              <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Remise multi-véhicules de 10% appliquée automatiquement !
-              </p>
-            )}
-            {quantity >= 6 && (
-              <p className="text-xs text-blue-400 font-semibold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" /> Option Grand Compte / Flotte : Tarif négocié et audit de flotte offert.
-              </p>
-            )}
-          </div>
 
-          {/* Step 3: Main Need */}
-          <div className="space-y-3">
-            <label className="text-sm font-bold text-slate-200 block">
-              3. Quel est votre besoin prioritaire ?
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {[
-                { label: "Sécurité antivol & braquage", icon: "🛡️" },
-                { label: "Surveillance chauffeurs & taxis", icon: "👀" },
-                { label: "Coupure moteur & contrôle km", icon: "⏻" }
-              ].map((need, idx) => (
+            {/* Q2: Quantity */}
+            <div>
+              <span className="block font-bold text-sm sm:text-base text-[#111033] mb-3">
+                <span className="text-[#525570] mr-1">02.</span> Combien de véhicules souhaitez-vous équiper ?
+              </span>
+              <div className="inline-flex items-center bg-white border border-[#CBD0E2] rounded-xl p-1 gap-2 shadow-xs">
                 <button
-                  key={idx}
                   type="button"
-                  onClick={() => setMainNeed(need.label)}
-                  className={`p-3 rounded-xl border text-left text-xs font-semibold flex items-center gap-2.5 transition cursor-pointer ${
-                    mainNeed === need.label
-                      ? 'bg-slate-800 border-orange-500 text-white shadow-sm ring-1 ring-orange-500'
-                      : 'bg-slate-800/50 border-slate-700/80 text-slate-300 hover:bg-slate-800'
-                  }`}
+                  onClick={() => setQty(Math.max(1, qty - 1))}
+                  className="w-11 h-11 rounded-[9px] bg-[#F1F3F9] hover:bg-[#E2E5F0] text-[#16144F] font-bold text-lg flex items-center justify-center transition active:scale-95 cursor-pointer"
+                  aria-label="Diminuer la quantité"
                 >
-                  <span className="text-base">{need.icon}</span>
-                  <span>{need.label}</span>
+                  −
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Step 4: Urgency / Timeframe */}
-          <div className="space-y-3">
-            <label className="text-sm font-bold text-slate-200 block">
-              4. Dans quel délai souhaitez-vous l'installation ?
-            </label>
-            <div className="grid grid-cols-3 gap-2.5">
-              {["Cette semaine", "Ce mois-ci", "Simple renseignement"].map((tf, idx) => (
+                <output className="min-w-[44px] text-center font-extrabold text-lg text-[#111033]">
+                  {qty}
+                </output>
                 <button
-                  key={idx}
                   type="button"
-                  onClick={() => setTimeframe(tf)}
-                  className={`p-2.5 rounded-xl border text-center text-xs font-semibold transition cursor-pointer ${
-                    timeframe === tf
-                      ? 'bg-orange-500/20 border-orange-500 text-orange-300 ring-1 ring-orange-500/30'
-                      : 'bg-slate-800/60 border-slate-700/80 text-slate-400 hover:text-slate-200'
-                  }`}
+                  onClick={() => setQty(Math.min(50, qty + 1))}
+                  className="w-11 h-11 rounded-[9px] bg-[#F1F3F9] hover:bg-[#E2E5F0] text-[#16144F] font-bold text-lg flex items-center justify-center transition active:scale-95 cursor-pointer"
+                  aria-label="Augmenter la quantité"
                 >
-                  {tf}
+                  +
                 </button>
-              ))}
+              </div>
             </div>
-          </div>
 
-          {/* Step 5: Contact Info & City */}
-          <div className="space-y-3">
-            <label className="text-sm font-bold text-slate-200 block">
-              5. Vos coordonnées pour recevoir l'offre :
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            {/* Q3: Main Need */}
+            <div>
+              <span className="block font-bold text-sm sm:text-base text-[#111033] mb-3">
+                <span className="text-[#525570] mr-1">03.</span> Quel est votre besoin principal ?
+              </span>
+              <div className="flex flex-wrap gap-2.5">
+                {[
+                  "Protéger contre le vol",
+                  "Suivre ma flotte / mes chauffeurs",
+                  "Couper le moteur à distance"
+                ].map((item) => (
+                  <label
+                    key={item}
+                    onClick={() => setMainNeed(item)}
+                    className={`inline-flex items-center min-h-[44px] px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold cursor-pointer transition-all ${
+                      mainNeed === item
+                        ? 'bg-white border-2 border-[#16144F] text-[#16144F] shadow-xs'
+                        : 'bg-white border-[#CBD0E2] text-[#111033] hover:border-[#16144F]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="need"
+                      value={item}
+                      checked={mainNeed === item}
+                      onChange={() => setMainNeed(item)}
+                      className="sr-only"
+                    />
+                    <span>{item}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Q4: Timeframe */}
+            <div>
+              <span className="block font-bold text-sm sm:text-base text-[#111033] mb-3">
+                <span className="text-[#525570] mr-1">04.</span> Quand souhaitez-vous installer le traceur ?
+              </span>
+              <div className="flex flex-wrap gap-2.5">
+                {["Cette semaine", "Ce mois-ci", "Je me renseigne"].map((item) => (
+                  <label
+                    key={item}
+                    onClick={() => setTimeframe(item)}
+                    className={`inline-flex items-center min-h-[44px] px-4 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold cursor-pointer transition-all ${
+                      timeframe === item
+                        ? 'bg-white border-2 border-[#16144F] text-[#16144F] shadow-xs'
+                        : 'bg-white border-[#CBD0E2] text-[#111033] hover:border-[#16144F]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="timeframe"
+                      value={item}
+                      checked={timeframe === item}
+                      onChange={() => setTimeframe(item)}
+                      className="sr-only"
+                    />
+                    <span>{item}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Q5: Contact info */}
+            <div>
+              <span className="block font-bold text-sm sm:text-base text-[#111033] mb-3">
+                <span className="text-[#525570] mr-1">05.</span> Vos coordonnées
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <input
                   type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Votre nom ou prénom"
-                  className="w-full bg-slate-800/90 border border-slate-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition"
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  placeholder="Votre prénom"
+                  className="w-full min-h-[48px] px-3.5 py-2.5 rounded-xl border border-[#CBD0E2] bg-white text-sm text-[#111033] focus:outline-none focus:border-[#16144F] focus:ring-2 focus:ring-[#16144F]/10 transition"
                   required
                 />
-              </div>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
                   type="tel"
-                  value={whatsappPhone}
-                  onChange={(e) => setWhatsappPhone(e.target.value)}
-                  placeholder="Numéro WhatsApp (ex: 656 73 75 41)"
-                  className="w-full bg-slate-800/90 border border-slate-700 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition"
+                  value={clientPhone}
+                  onChange={(e) => setClientPhone(e.target.value)}
+                  placeholder="Numéro WhatsApp (ex. 656...)"
+                  className="w-full min-h-[48px] px-3.5 py-2.5 rounded-xl border border-[#CBD0E2] bg-white text-sm text-[#111033] focus:outline-none focus:border-[#16144F] focus:ring-2 focus:ring-[#16144F]/10 transition"
                   required
                 />
               </div>
+
+              {/* City Choice */}
+              <div className="flex flex-wrap gap-2.5">
+                {["Yaoundé", "Douala", "Autre ville"].map((c) => (
+                  <label
+                    key={c}
+                    onClick={() => setCityName(c)}
+                    className={`inline-flex items-center min-h-[40px] px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                      cityName === c
+                        ? 'bg-white border-2 border-[#16144F] text-[#16144F] shadow-xs'
+                        : 'bg-white border-[#CBD0E2] text-[#111033] hover:border-[#16144F]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="city"
+                      value={c}
+                      checked={cityName === c}
+                      onChange={() => setCityName(c)}
+                      className="sr-only"
+                    />
+                    <span>{c}</span>
+                  </label>
+                ))}
+              </div>
             </div>
 
-            {/* City choice */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {["Douala", "Yaoundé", "Autre ville (Cameroun)"].map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCity(c)}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer flex items-center gap-1.5 ${
-                    city === c
-                      ? 'bg-slate-700 border-slate-500 text-white'
-                      : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <MapPin className="w-3 h-3 text-orange-400" />
-                  {c}
-                </button>
-              ))}
-            </div>
           </div>
 
-          {/* Pricing Estimation Card */}
-          <div className="bg-gradient-to-r from-slate-800/90 to-slate-800/50 border border-slate-700/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <span className="text-xs uppercase tracking-wider text-slate-400 font-bold block">
-                Estimation immédiate
-              </span>
-              {pricing.isFleet ? (
-                <div>
-                  <span className="text-xl sm:text-2xl font-extrabold text-blue-400">
-                    Tarif Flotte Sur Mesure
-                  </span>
-                  <span className="text-xs text-slate-400 block mt-0.5">
-                    Remise volume jusqu'à −25% + Formation équipe offerte
-                  </span>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-3xl font-extrabold text-orange-400">
-                      {formatFcfa(pricing.total)}
-                    </span>
-                    {quantity > 1 && (
-                      <span className="text-xs text-slate-400">
-                        ({quantity} × {formatFcfa(pricing.unitPrice)})
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-emerald-400 font-medium block mt-0.5">
-                    ✔ Boîtier + Pose discrète + App mobile à vie sans abonnement
-                  </span>
+          {/* Right Column: Sticky Summary Card */}
+          <div className="lg:col-span-4 lg:sticky lg:top-24">
+            <aside className="bg-[#16144F] text-white rounded-2xl p-7 sm:p-8 shadow-xl">
+              <div className="text-[11px] uppercase tracking-wider text-[#BFC3E6] font-bold mb-2.5">
+                Votre estimation
+              </div>
+
+              <div className="text-2xl sm:text-3xl font-extrabold text-white mb-1.5 tracking-tight leading-tight">
+                {estMainText}
+              </div>
+
+              <div className="text-xs text-[#D7D9EE] mb-6 min-h-[20px]">
+                {estSubText}
+              </div>
+
+              {/* Guarantees checklist */}
+              <ul className="border-y border-white/15 py-4 mb-6 space-y-2.5 text-xs text-[#E6E8F8]">
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#FF6B35] stroke-[2.5] shrink-0" />
+                  <span>Garantie boîtier 1 an incluse</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#FF6B35] stroke-[2.5] shrink-0" />
+                  <span>Installation à Yaoundé et Douala</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-[#FF6B35] stroke-[2.5] shrink-0" />
+                  <span>Application smartphone incluse</span>
+                </li>
+              </ul>
+
+              {/* Error box */}
+              {errorMessage && (
+                <div className="text-xs font-semibold text-[#FFD1C2] mb-3 flex items-center gap-1.5 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-[#FF6B35]" />
+                  <span>{errorMessage}</span>
                 </div>
               )}
-            </div>
 
-            <div className="text-right sm:text-right w-full sm:w-auto">
-              <span className="text-[11px] text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded-md border border-slate-700 inline-block">
-                📍 Déplacement gratuit à {city.includes('Autre') ? 'convenir' : city}
-              </span>
-            </div>
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full min-h-[50px] rounded-xl bg-[#FF6B35] hover:bg-[#F25A22] text-[#0E0D33] font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-[#FF6B35]/25 cursor-pointer"
+              >
+                <span>Recevoir mon offre sur WhatsApp</span>
+                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+              </button>
+
+              <p className="mt-3 text-[11px] text-[#BFC3E6] text-center leading-relaxed">
+                Sans engagement. Vos informations servent uniquement à vous répondre sur WhatsApp.
+              </p>
+            </aside>
           </div>
 
-          {/* Error Message */}
-          {errorMessage && (
-            <div className="p-3 bg-red-950/80 border border-red-500/50 rounded-xl text-red-200 text-xs font-medium flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold text-base sm:text-lg shadow-xl shadow-emerald-950/50 flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-            >
-              <Send className="w-5 h-5" />
-              <span>Recevoir mon offre & réserver sur WhatsApp</span>
-            </button>
-            <p className="text-center text-xs text-slate-400 mt-2.5">
-              🔒 100% sans engagement. Vos données ne sont jamais partagées à des tiers.
-            </p>
-          </div>
         </form>
 
-        {isSuccess && (
-          <div className="mt-6 p-4 bg-emerald-950/70 border border-emerald-500/40 rounded-2xl text-center max-w-xl mx-auto">
-            <p className="text-xs sm:text-sm text-emerald-200 font-medium">
-              ✅ Redirection vers WhatsApp en cours... Si la fenêtre ne s'ouvre pas automatiquement, 
-              <a 
-                href={`https://wa.me/${WHATSAPP_NUMBER}`} 
-                target="_blank" 
-                rel="noreferrer"
-                className="underline font-bold text-white ml-1 hover:text-emerald-300"
-              >
-                cliquez ici pour ouvrir WhatsApp
-              </a>.
-            </p>
-          </div>
-        )}
-
       </div>
-    </div>
+    </section>
   );
 }
-
