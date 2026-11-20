@@ -26,8 +26,12 @@ export default function Footer() {
             <p>
               Facebook &amp; Instagram : <span className="text-white font-semibold">{SOCIAL_HANDLE}</span>
             </p>
-            <p className="text-[11px] text-[#71769F] pt-1">
-              © {new Date().getFullYear()} GPS Tracking Cameroun. Tous droits réservés.
+            <p className="text-[11px] text-[#71769F] pt-1 flex items-center justify-start sm:justify-end gap-2">
+              <span>© {new Date().getFullYear()} GPS Tracking Cameroun. Tous droits réservés.</span>
+              <span>·</span>
+              <a href="/admin" className="text-[#8E93C3] hover:text-[#FF6B35] font-semibold transition">
+                Espace Admin 🔐
+              </a>
             </p>
           </div>
 
