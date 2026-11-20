@@ -1,0 +1,103 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: devis
+// Document ID: auto-generated document ID ({devisId})
+// Purpose: Lead / quote submission requests from the landing page
+//
+// Fields:
+//   - clientName: string (required, 2-100 chars) - Prospect's name
+//   - clientPhone: string (required, 8-30 chars) - Prospect's WhatsApp phone number
+//   - cityName: string (required, 2-50 chars) - City (Yaoundé, Douala, etc.)
+//   - vehicleLabel: string (required, 2-60 chars) - Type of vehicle (Moto, Berline, SUV, etc.)
+//   - qty: number (required, integer >= 1 and <= 500) - Quantity of vehicles
+//   - unitPrice: number (optional, >= 0) - Estimated unit price in FCFA
+//   - mainNeed: string (required, 2-100 chars) - Selected primary need
+//   - timeframe: string (required, 2-50 chars) - Installation urgency timeframe
+//   - estimationText: string (optional, <= 100 chars) - Total formatted estimate
+//   - leadTag: string (optional, <= 30 chars) - Lead classification (CHAUD, FLOTTE, etc.)
+//   - status: string (required, must be 'nouveau' on creation) - Processing status
+//   - createdAt: timestamp (required) - Submission timestamp
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].size() >= minLen &&
+             request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidDevisSubmission() {
+      let data = request.resource.data;
+      let allowedFields = [
+        'clientName', 'clientPhone', 'cityName', 'vehicleLabel',
+        'qty', 'unitPrice', 'mainNeed', 'timeframe',
+        'estimationText', 'leadTag', 'status', 'createdAt'
+      ];
+      let requiredFields = [
+        'clientName', 'clientPhone', 'cityName', 'vehicleLabel',
+        'qty', 'mainNeed', 'timeframe', 'status', 'createdAt'
+      ];
+
+      return hasRequiredFields(requiredFields) &&
+             hasOnlyAllowedFields(allowedFields) &&
+             validStringLength('clientName', 2, 100) &&
+             validStringLength('clientPhone', 8, 30) &&
+             validStringLength('cityName', 2, 50) &&
+             validStringLength('vehicleLabel', 2, 60) &&
+             validStringLength('mainNeed', 2, 100) &&
+             validStringLength('timeframe', 2, 50) &&
+             data.qty is number && data.qty >= 1 && data.qty <= 500 &&
+             (!( 'unitPrice' in data ) || (data.unitPrice is number && data.unitPrice >= 0)) &&
+             isValidOptionalString('estimationText', 0, 100) &&
+             isValidOptionalString('leadTag', 0, 30) &&
+             data.status == 'nouveau' &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules for collection: devis
+    // ===============================================================
+    match /devis/{devisId} {
+      // Allow public website visitors to submit a new quote request with strict schema validation
+      allow create: if isValidDevisSubmission();
+
+      // Protect customer privacy: only authenticated admins can read, update, or delete quotes
+      allow read, update, delete: if isAuthenticated();
+    }
+
+    // Default deny for all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

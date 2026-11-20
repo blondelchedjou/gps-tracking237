@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
-import { ArrowRight, Check, AlertCircle } from 'lucide-react';
+import { ArrowRight, Check, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { WHATSAPP_NUMBER } from '../data/landingData';
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function QuoteForm({ selectedVehicle, setSelectedVehicle }) {
   const [qty, setQty] = useState(1);
@@ -11,6 +13,8 @@ export default function QuoteForm({ selectedVehicle, setSelectedVehicle }) {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const formatPrice = (val) => {
     return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " FCFA";
@@ -38,7 +42,7 @@ export default function QuoteForm({ selectedVehicle, setSelectedVehicle }) {
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!selectedVehicle) {
@@ -64,6 +68,34 @@ export default function QuoteForm({ selectedVehicle, setSelectedVehicle }) {
     }
 
     setErrorMessage("");
+    setIsSubmitting(true);
+
+    const leadTag = qty >= 6 ? "FLOTTE" : (timeframe === "Cette semaine" ? "CHAUD" : "TIÈDE");
+    const estimationText = qty >= 6 ? "flotte, devis sur mesure" : formatPrice(unitPrice * qty);
+
+    try {
+      // Enregistrement sécurisé en temps réel dans Cloud Firestore
+      await addDoc(collection(db, "devis"), {
+        clientName: clientName.trim(),
+        clientPhone: cleanPhone,
+        cityName: cityName,
+        vehicleLabel: vehicleLabel,
+        qty: Number(qty),
+        unitPrice: Number(unitPrice),
+        mainNeed: mainNeed,
+        timeframe: timeframe,
+        estimationText: estimationText,
+        leadTag: leadTag,
+        status: "nouveau",
+        createdAt: serverTimestamp(),
+      });
+
+      setSubmitSuccess(true);
+    } catch (err) {
+      console.error("Erreur d'enregistrement Firestore:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
 
     // Trigger celebration confetti
     try {
@@ -74,9 +106,6 @@ export default function QuoteForm({ selectedVehicle, setSelectedVehicle }) {
         colors: ['#FF6B35', '#16144F', '#F8F9FC', '#0E0D33']
       });
     } catch (err) {}
-
-    const leadTag = qty >= 6 ? "FLOTTE" : (timeframe === "Cette semaine" ? "CHAUD" : "TIÈDE");
-    const estimationText = qty >= 6 ? "flotte, devis sur mesure" : formatPrice(unitPrice * qty);
 
     const message = 
 `Bonjour GPS Tracking, je suis ${clientName} (${cityName}).
@@ -363,13 +392,31 @@ Mon WhatsApp : ${cleanPhone}
                 </div>
               )}
 
+              {/* Success box */}
+              {submitSuccess && (
+                <div className="text-xs font-semibold text-emerald-300 mb-3 flex items-center gap-1.5 animate-in fade-in bg-emerald-950/40 border border-emerald-500/30 p-2.5 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>Demande enregistrée ! Ouverture de WhatsApp...</span>
+                </div>
+              )}
+
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full min-h-[50px] rounded-xl bg-[#FF6B35] hover:bg-[#F25A22] text-[#0E0D33] font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-[#FF6B35]/25 cursor-pointer"
+                disabled={isSubmitting}
+                className="w-full min-h-[50px] rounded-xl bg-[#FF6B35] hover:bg-[#F25A22] text-[#0E0D33] font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-[#FF6B35]/25 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
               >
-                <span>Recevoir mon offre sur WhatsApp</span>
-                <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-[#0E0D33]" />
+                    <span>Enregistrement en cours...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Recevoir mon offre sur WhatsApp</span>
+                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                  </>
+                )}
               </button>
 
               <p className="mt-3 text-[11px] text-[#BFC3E6] text-center leading-relaxed">
